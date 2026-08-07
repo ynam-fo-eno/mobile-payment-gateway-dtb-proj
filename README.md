@@ -24,5 +24,5 @@ This project is configured to run all services (Frontend, Backend, and PostgreSQ
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/yourusername/dtb-payment-gateway.git](https://github.com/yourusername/dtb-payment-gateway.git)
+   git clone [https://github.com/yourusername/dtb-payment-gateway.git](https://github.com/ynam-fo-eno/dtb-payment-gateway.git)
    cd dtb-payment-gateway
