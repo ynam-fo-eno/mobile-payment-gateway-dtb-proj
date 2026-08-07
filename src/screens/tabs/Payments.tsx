@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Payments = () => {
-    const [role] = useState<'CUSTOMER' | 'MERCHANT'>('MERCHANT'); // Set default for testing
+    const [role,setRole] = useState<'CUSTOMER' | 'MERCHANT'>('CUSTOMER'); 
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
 
@@ -15,13 +15,18 @@ const Payments = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-dtb-white">
+            <View className="flex-row bg-dtb-yellow justify-center items-center mb-6">
+                <TouchableOpacity  onPress={() => setRole(role === 'CUSTOMER' ? 'MERCHANT' : 'CUSTOMER')}className="bg-black/20 px-4 py-2 rounded-full">
+                    <Text className="text-white text-xs font-bold tracking-wider">TEST: SWITCH ROLE</Text>
+                </TouchableOpacity>
+            </View>
             <View className="px-6 py-4 bg-dtb-red">
                 <Text className="text-white text-2xl font-bold">
-                    {role === 'CUSTOMER' ? 'Pending Approvals' : 'Request Payment'}
+                    {role === 'CUSTOMER' ? 'Pending Approvals - Customer' : 'Request Payment - Merchant'}
                 </Text>
             </View>
 
-            <ScrollView className="px-6 pt-6">
+            <ScrollView className=" bg-dtb-orange px-6 pt-6">
                 {role === 'CUSTOMER' ? (
                     // CUSTOMER VIEW: Approve/Reject List
                     <View className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-4">

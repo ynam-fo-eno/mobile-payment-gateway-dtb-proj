@@ -2,19 +2,19 @@
 
 A containerized digital wallet and payment gateway simulator built for the DTB Internship Project. This system demonstrates core financial flows including wallet balances, merchant payments, and basic daily settlements.
 
-## 🚀 Tech Stack
+##  Tech Stack
 *   **Frontend:** React Native (Mobile UI)
 *   **Backend:** Java / Spring Boot (Auth, Wallet, Settlement Services)
 *   **Database:** PostgreSQL
 *   **Infrastructure:** Docker & Docker Compose
 
-## ✨ Core Features
+## Core Features
 *   **Customer App:** View wallet balances, review recent transactions, and approve/reject pending merchant requests.
 *   **Merchant App:** Monitor available/pending balances and create payment requests.
 *   **Admin Dashboard:** High-level system overview tracking total users, wallets, transactions, and last settlement run.
 *   **Containerized Environment:** Fully orchestrated backend, frontend, and database via Docker.
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 *   [Docker](https://docs.docker.com/get-docker/) installed and running.
