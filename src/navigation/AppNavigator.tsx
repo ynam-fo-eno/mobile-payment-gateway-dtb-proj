@@ -4,21 +4,23 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { LayoutDashboard, WalletCards, History as HistoryIcon } from 'lucide-react-native';
 
+// Import your global auth hook
+import { useAuth } from '../hooks/useAuth';
 
-//splash
+// Splash
 import Splash from '../screens/onboarding/Splash';
 
-// Import your screens
+// Import your auth screens
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
-// Assume these exist in your tabs folder based on your sketch
+
+// Import your tab screens
 import Dashboard from '../screens/tabs/Dashboard'; 
 import Payments from '../screens/tabs/Payments';
 import History from '../screens/tabs/History';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
 
 const TabNavigator = () => (
   <Tab.Navigator 
@@ -44,16 +46,22 @@ const TabNavigator = () => (
 );
 
 export default function AppNavigator() {
+  const { userToken } = useAuth();
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Auth Flow */}
-        <Stack.Screen name="Splash" component={Splash} />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Register" component={Register} />
-        
-        {/* Main App Flow */}
-        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        {userToken ? (
+          /* Main App Flow - Rendered automatically when logged in */
+          <Stack.Screen name="MainTabs" component={TabNavigator} />
+        ) : (
+          /* Auth Flow - Rendered when logged out or fresh app boot */
+          <>
+            <Stack.Screen name="Splash" component={Splash} />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Register" component={Register} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
