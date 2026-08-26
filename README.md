@@ -38,7 +38,10 @@ Because this project runs across multiple layers (Dockerized backend, web client
 2. Spin up the containerized backend and database:
    ```bash
    docker compose up -d
- (If you had major changes to Dockerfile for example you may run "docker compose down" first then the terminal immediately above)
+
+NB: If you had major changes to Dockerfile or docker-compose.yml, for example, you may run "docker compose down" first then the command immediately above:
+      ```bash
+      docker compose up -d
 
 3. To check that it's running:
    ```bash
