@@ -39,11 +39,12 @@ Because this project runs across multiple layers (Dockerized backend, web client
    ```bash
    docker compose up -d
 
-NB: If you had major changes to Dockerfile or docker-compose.yml, for example, you may run "docker compose down" first then the command immediately above:
-      ```bash
-      docker compose up -d
+3. If you had major changes to Dockerfile or docker-compose.yml, for example, you may run "docker compose down" first then the command in #2 immediately above:
+   ```bash
+   docker compose down
 
-3. To check that it's running:
+
+4. To check that it's running:
    ```bash
    docker compose logs -f backend
 
