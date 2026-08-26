@@ -82,8 +82,8 @@ NB2: Run on your Android Emulator (ensure your API calls target http://10.0.2.2:
    npm run android
 
 
-OR if you use React Native CLI's way of running it:
+4. OR if you use React Native CLI's way of running it:
     ```bash
    npx react-native run-android
 
-(This will automatically link tot he emulator you've been having on previously)
+(This will automatically link to the emulator you've been having on previously)
