@@ -24,7 +24,7 @@ Because this project runs across multiple layers (Dockerized backend, web client
 ### Prerequisites
 * [Docker](https://docs.docker.com/get-docker/) installed and running.
 * [Node.js](https://nodejs.org/) installed for running the frontend and mobile apps on the browser.
-* [Android Studio] Heavy, I know, but needed for testing it on an emulator of a phone. 
+* [Android Studio](https://developer.android.com/studio) Heavy, I know, but needed for testing it on an emulator of a phone. 
    More on how to setup Android Studio and an appropriate emulator on React NAtive's setup docs (https://reactnative.dev/docs/set-up-your-environment)
 ---
 
