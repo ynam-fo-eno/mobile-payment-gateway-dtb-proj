@@ -28,7 +28,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/auth/login/', {
+            const response = await fetch('http://10.0.2.2:8000/api/mobile/auth/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -45,9 +45,9 @@ const Login = () => {
             console.log("SERVER RETURNED ROLE:", data.role);
 
             if (response.ok) {
-                console.log("Login success! Token:", data.token, "Role:", data.role);
+                console.log("Login success! Token:", data.access, "Role:", data.role);
                 // This updates state and triggers AppNavigator to show MainTabs automatically
-                login(data.token, data.role);
+                login(data.access, data.user.role);
             } else {
                 setError(data.message || 'Login failed. Please try again.');
             }

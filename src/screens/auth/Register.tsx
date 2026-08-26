@@ -48,17 +48,17 @@ const Register = () => {
         setError('');
 
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/auth/register/', {
+            const response = await fetch('http://10.0.2.2:8000/api/mobile/auth/register/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
                 body: JSON.stringify({
-                    fullname: name,         
+                    username: name, 
                     email: email,
-                    pword: password,        
-                    user_role: role
+                    password: password,
+                    role: role
                 }),
             });
 
@@ -68,6 +68,7 @@ const Register = () => {
                 // Redirect to login and pass a success message parameter
                 navigation.navigate('Login', { successMessage: 'Account created successfully! Please log in.' });
             } else {
+                console.log("Django Validation Error:", data);
                 setError(data.message || 'Failed to create account.');
             }
         } catch (err) {

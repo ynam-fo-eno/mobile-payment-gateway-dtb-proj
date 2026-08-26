@@ -19,7 +19,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchWalletData = async () => {
             try {
-                const response = await fetch('http://10.0.2.2:8000/api/wallet/data/', {
+                const response = await fetch('http://10.0.2.2:8000/api/mobile/wallet/data/', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${userToken}`,
@@ -59,7 +59,7 @@ const Dashboard = () => {
 
         if (actionType === 'TOP_UP') {
             try {
-                const response = await fetch('http://10.0.2.2:8000/api/wallet/topup/', {
+                const response = await fetch('http://10.0.2.2:8000/api/mobile/wallet/topup/', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${userToken}`,
@@ -82,7 +82,7 @@ const Dashboard = () => {
             }
         } else if (actionType === 'WITHDRAW') {
             try {
-                const response = await fetch('http://10.0.2.2:8000/api/wallet/withdraw/', {
+                const response = await fetch('http://10.0.2.2:8000/api/mobile/wallet/withdraw/', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${userToken}`,
@@ -112,7 +112,7 @@ const Dashboard = () => {
             }
 
             try {
-                const response = await fetch('http://10.0.2.2:8000/api/wallet/pay/', {
+                const response = await fetch('http://10.0.2.2:8000/api/mobile/wallet/pay/', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${userToken}`,
@@ -120,7 +120,7 @@ const Dashboard = () => {
                     },
                     body: JSON.stringify({ 
                         amount: Number(amount),
-                        merchant_email: merchantEmail.trim() // Send the email to Django!
+                        merchant_email: merchantEmail.trim() 
                     })
                 });
                 
