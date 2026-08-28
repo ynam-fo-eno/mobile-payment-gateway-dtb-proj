@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth'; 
 
 const Login = () => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [authing, setAuth] = useState(false);
@@ -20,36 +20,33 @@ const Login = () => {
         setAuth(true);
         setError('');
         
-        // Stop here if fields are empty
-        if (!email || !password) {
+        if (!username || !password) {
             setError('Please fill in all fields.');
             setAuth(false);
             return;
         }
 
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/mobile/auth/login/', {
+            const response = await fetch('http://10.0.2.2:8000/api/auth/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                // Only send the credentials. The backend provides the role!
                 body: JSON.stringify({
-                    email: email,
+                    username: username.trim(),
                     password: password
                 }),
             });
 
             const data = await response.json();
-            console.log("SERVER RETURNED ROLE:", data.role);
 
             if (response.ok) {
-                console.log("Login success! Token:", data.access, "Role:", data.role);
-                // This updates state and triggers AppNavigator to show MainTabs automatically
-                login(data.access, data.user.role);
+                const fetchedRole = data.role || (data.user && data.user.role) || 'CUSTOMER';
+                const userRole = fetchedRole.toUpperCase();
+                login(data.access, userRole);
             } else {
-                setError(data.message || 'Login failed. Please try again.');
+                setError(data.detail || data.message || 'Login failed. Please try again.');
             }
         } catch (err) {
             console.error("Network error:", err);
@@ -72,12 +69,12 @@ const Login = () => {
                 ) : null}
                 
                 <View className="flex-row items-center py-4 mb-2">
-                    <TouchableOpacity 
+                    <Pressable 
                         onPress={() => navigation.goBack()} 
                         className="p-2 -ml-2 rounded-full active:bg-black/10" 
                     >
                         <ArrowLeft color="white" size={24} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
                 <View className='w-full max-w-[450px] mx-auto'>
@@ -89,12 +86,11 @@ const Login = () => {
                     <View className='w-full mb-4'>
                         <View className="bg-white/10 rounded-lg p-2 mb-4">
                             <TextInput
-                                placeholder='Email address'
+                                placeholder='Username'
                                 placeholderTextColor='#fca5a5'
                                 className='w-full text-white px-4 py-3 text-base'
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType='email-address'
+                                value={username}
+                                onChangeText={setUsername}
                                 autoCapitalize='none'
                             />
                         </View>
@@ -112,7 +108,7 @@ const Login = () => {
 
                     {error ? <Text className='text-yellow-300 mb-4 text-center font-medium'>{error}</Text> : null}
 
-                    <TouchableOpacity
+                    <Pressable
                         onPress={handleLogin}
                         disabled={authing}
                         className={`w-full bg-white my-2 rounded-lg p-4 items-center justify-center shadow-sm ${authing ? 'opacity-70' : 'opacity-100'}`}
@@ -120,13 +116,13 @@ const Login = () => {
                         <Text className='text-[#E32C22] font-bold text-lg'>
                             {authing ? 'Authenticating...' : 'Log In'}
                         </Text>
-                    </TouchableOpacity>
+                    </Pressable>
 
                     <View className='w-full flex-row items-center justify-center mt-8'>
                         <Text className='text-sm text-red-100'>Don't have a wallet? </Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                        <Pressable onPress={() => navigation.navigate('Register')}>
                             <Text className='text-sm font-bold text-white underline'>Register Here</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </KeyboardAvoidingView>

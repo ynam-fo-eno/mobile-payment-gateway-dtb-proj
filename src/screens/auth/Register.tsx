@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,7 +48,7 @@ const Register = () => {
         setError('');
 
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/mobile/auth/register/', {
+            const response = await fetch('http://10.0.2.2:8000/api/auth/register/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -58,6 +58,7 @@ const Register = () => {
                     username: name, 
                     email: email,
                     password: password,
+                    password_confirm: confirmPassword,
                     role: role
                 }),
             });
@@ -69,7 +70,29 @@ const Register = () => {
                 navigation.navigate('Login', { successMessage: 'Account created successfully! Please log in.' });
             } else {
                 console.log("Django Validation Error:", data);
-                setError(data.message || 'Failed to create account.');
+                
+                // --- NEW DRF ERROR PARSER ---
+                let errorMessage = 'Failed to create account.';
+                
+                // If Django sends a standard detail/message key
+                if (data.message || data.detail) {
+                    errorMessage = data.message || data.detail;
+                } 
+                // If Django sends field-specific errors (e.g. {"username": ["Taken"]})
+                else if (data && typeof data === 'object') {
+                    const firstKey = Object.keys(data)[0]; 
+                    if (firstKey) {
+                        const errorContent = data[firstKey];
+                        if (Array.isArray(errorContent)) {
+                            // Format: "username: A user with that username already exists."
+                            errorMessage = `${firstKey}: ${errorContent[0]}`;
+                        } else if (typeof errorContent === 'string') {
+                            errorMessage = `${firstKey}: ${errorContent}`;
+                        }
+                    }
+                }
+                
+                setError(errorMessage);
             }
         } catch (err) {
             console.error("Network error:", err);
@@ -86,9 +109,9 @@ const Register = () => {
                 className='flex-1 justify-center'
             >
                 <View className="flex-row items-center py-4 mb-2">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 -ml-2 rounded-full active:bg-black/10">
+                    <Pressable onPress={() => navigation.goBack()} className="p-2 -ml-2 rounded-full active:bg-black/10">
                         <ArrowLeft color="white" size={24} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
                 <View className='w-full max-w-[450px] mx-auto'>
@@ -99,18 +122,18 @@ const Register = () => {
 
                     {/* Role Simulator Toggle */}
                     <View className="flex-row bg-red-800/50 p-1 rounded-lg mb-6">
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={() => setRole('CUSTOMER')}
                             className={`flex-1 py-2 items-center rounded-md ${role === 'CUSTOMER' ? 'bg-white' : ''}`}
                         >
                             <Text className={`font-semibold ${role === 'CUSTOMER' ? 'text-[#E32C22]' : 'text-white'}`}>Personal</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
+                        </Pressable>
+                        <Pressable 
                             onPress={() => setRole('MERCHANT')}
                             className={`flex-1 py-2 items-center rounded-md ${role === 'MERCHANT' ? 'bg-white' : ''}`}
                         >
                             <Text className={`font-semibold ${role === 'MERCHANT' ? 'text-[#E32C22]' : 'text-white'}`}>Business</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View className='w-full mb-4'>
@@ -121,6 +144,7 @@ const Register = () => {
                                 className='w-full text-white px-4 py-3 text-base'
                                 value={name}
                                 onChangeText={setName}
+                                autoCapitalize='none'
                             />
                         </View>
                         <View className="bg-white/10 rounded-lg p-2 mb-4">
@@ -144,14 +168,14 @@ const Register = () => {
                                 value={password}
                                 onChangeText={setPassword}
                             />
-                            <TouchableOpacity 
+                            <Pressable 
                                 onPress={() => setShowPassword(!showPassword)}
                                 className="absolute right-4 py-2"
                             >
-                                <Text className="text-dtb-red font-bold text-xs">
+                                <Text className="text-dtb-red font-bold text-xs mt-2">
                                     {showPassword ? 'HIDE' : 'SHOW'}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         {/* Confirm Password Input with Toggle */}
@@ -164,21 +188,21 @@ const Register = () => {
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                             />
-                            <TouchableOpacity 
+                            <Pressable 
                                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-4 py-2"
                             >
-                                <Text className="text-dtb-red font-bold text-xs">
+                                <Text className="text-dtb-red font-bold text-xs mt-2">
                                     {showConfirmPassword ? 'HIDE' : 'SHOW'}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
 
                     {/* Error Message Display */}
                     {error ? <Text className='text-yellow-300 mb-4 text-center font-medium'>{error}</Text> : null}
 
-                    <TouchableOpacity
+                    <Pressable
                         onPress={handleRegister}
                         disabled={creating}
                         className={`w-full bg-white my-2 rounded-lg p-4 items-center justify-center shadow-sm ${creating ? 'opacity-70' : 'opacity-100'}`}
@@ -186,7 +210,7 @@ const Register = () => {
                         <Text className='text-[#E32C22] font-bold text-lg'>
                             {creating ? 'Creating...' : 'Create Account'}
                         </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>

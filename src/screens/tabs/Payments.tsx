@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -34,12 +34,12 @@ const Payments = () => {
                             <Text className="text-dtb-orange font-extrabold text-lg">KES 850</Text>
                         </View>
                         <View className="flex-row gap-x-4">
-                            <TouchableOpacity className="flex-1 bg-dtb-navy py-3 rounded-lg items-center">
+                            <Pressable className="flex-1 bg-dtb-navy py-3 rounded-lg items-center">
                                 <Text className="text-white font-bold">Approve</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity className="flex-1 border border-dtb-red py-3 rounded-lg items-center">
+                            </Pressable>
+                            <Pressable className="flex-1 border border-dtb-red py-3 rounded-lg items-center">
                                 <Text className="text-dtb-red font-bold">Reject</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 ) : (
@@ -64,12 +64,12 @@ const Payments = () => {
                             onChangeText={setDescription}
                         />
 
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={handleRequest}
                             className="bg-dtb-red w-full py-4 rounded-lg items-center"
                         >
                             <Text className="text-white font-bold text-lg">Send Request</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 )}
             </ScrollView>
