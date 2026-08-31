@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import Star from 'lucide-react-native/icons/star';
 
 const Payments = () => {
     const { role } = useAuth(); 
@@ -31,7 +32,11 @@ const Payments = () => {
                                 <Text className="text-dtb-navy font-bold text-lg">Java House</Text>
                                 <Text className="text-gray-500">Coffee and Pastries</Text>
                             </View>
-                            <Text className="text-dtb-orange font-extrabold text-lg">KES 850</Text>
+                            <View>
+                                <Text className="text-dtb-orange font-extrabold text-lg">KES 850</Text>
+                                <Star color="#90EE90" size={18} />
+                            </View>
+                            
                         </View>
                         <View className="flex-row gap-x-4">
                             <Pressable className="flex-1 bg-dtb-navy py-3 rounded-lg items-center">

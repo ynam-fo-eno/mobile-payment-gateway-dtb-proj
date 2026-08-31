@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import Star from 'lucide-react-native/icons/star';
 
 const History = () => {
     const { role } = useAuth();
@@ -28,11 +29,12 @@ const History = () => {
                                 <Text className="text-dtb-navy font-bold text-base">{txn.entity}</Text>
                                 <Text className="text-gray-400 text-xs mt-1">{txn.date}</Text>
                             </View>
-                            <View className="items-end">
+                            <View className="items-center">
                                 <Text className="text-dtb-navy font-extrabold">{txn.amount}</Text>
                                 <Text className={`text-xs font-bold mt-1 ${txn.status === 'PAID' ? 'text-green-600' : 'text-dtb-red'}`}>
                                     {txn.status}
                                 </Text>
+                                <Star color="#90EE90" size={18} />
                             </View>
                         </View>
                     ))

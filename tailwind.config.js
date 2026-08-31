@@ -10,7 +10,8 @@ module.exports = {
           orange: '#f05d22',
           yellow: '#f1b719',
           navy: '#1d252d',
-          white: '#f8f9fa'
+          white: '#f8f9fa',
+          green: "#90EE90",
         },
       },
     },

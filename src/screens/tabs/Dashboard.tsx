@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
-import { ArrowDownToLine, ArrowUpFromLine, ScanLine, X, Clock } from 'lucide-react-native';
+import { ArrowDownToLine, ArrowUpFromLine, ScanLine, X, Clock, Star } from 'lucide-react-native';
 
 // Mock data for the 5 most recent transactions
 const RECENT_TRANSACTIONS = [
@@ -197,6 +197,7 @@ const Dashboard = () => {
                 <View className="px-6">
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-dtb-navy text-lg font-bold">Recent Transactions</Text>
+                        <Star color="#90EE90" size={18} />
                         <Clock color="#9CA3AF" size={18} />
                     </View>
 
