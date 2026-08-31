@@ -1,13 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import Star from 'lucide-react-native/icons/star';
 
 const Payments = () => {
-    const { role } = useAuth(); 
+    const { userToken, role } = useAuth(); 
+    const [verifiedRole, setVerifiedRole] = useState(role ? role.toUpperCase() : 'CUSTOMER');
+    const [loadingRole, setLoadingRole] = useState(true);
+    
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
+
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const response = await fetch('http://10.0.2.2:8000/api/auth/me/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (response.ok && data?.role) {
+                    setVerifiedRole(data.role.toUpperCase());
+                }
+            } catch (error) {
+                console.error("Error fetching role:", error);
+            } finally {
+                setLoadingRole(false);
+            }
+        };
+        fetchRole();
+    }, [userToken]);
 
     const handleRequest = () => {
         console.log(`[NOTIFICATION] Requested KES ${amount} for ${description}`);
@@ -18,13 +44,15 @@ const Payments = () => {
     return (
         <SafeAreaView className="flex-1 bg-dtb-white">
             <View className="px-6 py-4 bg-dtb-red">
-                <Text className="text-white text-2xl font-bold">
-                    {role === 'CUSTOMER' ? 'Pending Approvals' : 'Request Payment'}
+                <Text className="text-white text-center text-2xl font-bold">
+                    {verifiedRole === 'CUSTOMER' ? 'Pending Approvals' : 'Request Payment'}
                 </Text>
             </View>
 
             <ScrollView className="bg-dtb-orange px-6 pt-6 flex-1">
-                {role === 'CUSTOMER' ? (
+                {loadingRole ? (
+                     <ActivityIndicator size="large" color="#E32C22" className="mt-10" />
+                ) : verifiedRole === 'CUSTOMER' ? (
                     // CUSTOMER VIEW: Approve/Reject List
                     <View className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-4">
                         <View className="flex-row justify-between items-start mb-4">
@@ -36,7 +64,6 @@ const Payments = () => {
                                 <Text className="text-dtb-orange font-extrabold text-lg">KES 850</Text>
                                 <Star color="#90EE90" size={18} />
                             </View>
-                            
                         </View>
                         <View className="flex-row gap-x-4">
                             <Pressable className="flex-1 bg-dtb-navy py-3 rounded-lg items-center">

@@ -2,22 +2,19 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { LayoutDashboard, WalletCards, History as HistoryIcon } from 'lucide-react-native';
+import { LayoutDashboard, WalletCards, History as HistoryIcon, User } from 'lucide-react-native';
 
-// Import your global auth hook
 import { useAuth } from '../hooks/useAuth';
 
-// Splash
 import Splash from '../screens/onboarding/Splash';
 
-// Import your auth screens
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
 
-// Import your tab screens
 import Dashboard from '../screens/tabs/Dashboard'; 
 import Payments from '../screens/tabs/Payments';
 import History from '../screens/tabs/History';
+import Profile from '../screens/tabs/Profile';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -35,6 +32,8 @@ const TabNavigator = () => (
           return <WalletCards color={color} size={size} />;
         } else if (route.name === 'History') {
           return <HistoryIcon color={color} size={size} />;
+        }else if (route.name === 'Profile') {
+          return <User color={color} size={size} />;
         }
       },
     })}
@@ -42,6 +41,7 @@ const TabNavigator = () => (
     <Tab.Screen name="Dashboard" component={Dashboard} />
     <Tab.Screen name="Payments" component={Payments} />
     <Tab.Screen name="History" component={History} />
+    <Tab.Screen name="Profile" component={Profile} />
   </Tab.Navigator>
 );
 

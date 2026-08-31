@@ -17,6 +17,8 @@ const Dashboard = () => {
     const { role, logout, userToken } = useAuth(); 
     const [balance, setBalance] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    const [verifiedRole, setVerifiedRole] = useState(role ? role.toUpperCase() : 'CUSTOMER');
 
     const [isModalVisible, setModalVisible] = useState(false);
     const [actionType, setActionType] = useState<'TOP_UP' | 'WITHDRAW' | 'PAY' | null>(null);
@@ -25,10 +27,10 @@ const Dashboard = () => {
     const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
-        const fetchWalletData = async () => {
+        const fetchDashboardData = async () => {
             try {
-                // Pointing to Kerry's unified wallet path for the balance check
-                const response = await fetch('http://10.0.2.2:8000/api/wallet/', {
+                // 1. Fetch Wallet Balance
+                const walletResponse = await fetch('http://10.0.2.2:8000/api/wallet/', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${userToken}`,
@@ -36,20 +38,39 @@ const Dashboard = () => {
                     }
                 });
                 
-                const data = await response.json();
+                const walletData = await walletResponse.json();
                 
-                if (response.ok) {
-                    const walletObj = Array.isArray(data) ? data[0] : data;
+                if (walletResponse.ok) {
+                    const walletObj = Array.isArray(walletData) ? walletData[0] : walletData;
                     setBalance(walletObj?.balance ?? walletObj?.available_balance ?? 0);
                 }
+
+                // 2. Fetch True Role from Profile Endpoint
+              const userResponse = await fetch('http://10.0.2.2:8000/api/auth/me/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const userData = await userResponse.json();
+                console.log("USER DATA PAYLOAD:", userData); // <-- Check your terminal to see the exact fields!
+
+                if (userResponse.ok && userData?.role) {
+                    // Forcefully override the role using the absolute source of truth
+                    setVerifiedRole(userData.role.toUpperCase());
+                }
+
+
             } catch (error) {
-                console.error("Network error fetching balance:", error);
+                console.error("Network error fetching dashboard data:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchWalletData();
+        fetchDashboardData();
     }, [userToken]);
 
     const openModal = (type: 'TOP_UP' | 'WITHDRAW' | 'PAY') => {
@@ -71,7 +92,6 @@ const Dashboard = () => {
             let endpoint = '';
             let bodyData: any = { amount: Number(amount) };
 
-            // Targeting your newly added additive backend routes!
             if (actionType === 'TOP_UP') {
                 endpoint = 'http://10.0.2.2:8000/api/mobile/topup/'; 
             } else if (actionType === 'WITHDRAW') {
@@ -118,7 +138,8 @@ const Dashboard = () => {
                 <View className="px-6 pt-4 pb-8 bg-dtb-red rounded-b-3xl shadow-md">
                     <View className="flex-row justify-between items-center mb-6">
                         <Text className="text-white text-2xl font-bold">
-                            {role === 'CUSTOMER' ? 'My Wallet' : 'Merchant Portal'}
+                            {/* Replaced booleans with direct inline check against verifiedRole */}
+                            {verifiedRole === 'CUSTOMER' ? 'My Wallet' : 'Merchant Portal'}
                         </Text>
                         
                         <Pressable onPress={logout} className="bg-black/20 px-4 py-2 rounded-full">
@@ -126,7 +147,7 @@ const Dashboard = () => {
                         </Pressable>
                     </View>
 
-                    {role === 'CUSTOMER' ? (
+                    {verifiedRole === 'CUSTOMER' ? (
                         <View>
                             <Text className="text-red-100 text-sm font-medium uppercase tracking-wider">Available Balance</Text>
                             {loading ? (
@@ -160,10 +181,10 @@ const Dashboard = () => {
                 {/* Quick Actions */}
                 <View className="px-6 mt-8">
                     <Text className="text-dtb-navy text-lg font-bold mb-4">
-                        {role === 'CUSTOMER' ? 'Quick Actions' : 'Overview'}
+                        {verifiedRole === 'CUSTOMER' ? 'Quick Actions' : 'Overview'}
                     </Text>
-                    
-                    {role === 'CUSTOMER' ? (
+
+                    {verifiedRole === 'CUSTOMER' ? (
                         <View className="flex-row justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-8">
                             <Pressable onPress={() => openModal('TOP_UP')} className="items-center flex-1">
                                 <View className="bg-red-50 p-3 rounded-full mb-2">
