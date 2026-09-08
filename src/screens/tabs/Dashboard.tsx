@@ -1,82 +1,111 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
-import { ArrowDownToLine, ArrowUpFromLine, ScanLine, X, Clock, Star } from 'lucide-react-native';
-
-// Mock data for the 5 most recent transactions
-const RECENT_TRANSACTIONS = [
-    { id: '1', date: 'Aug 28, 2026', entity: 'Naivas Supermarket', amount: '4,500.00', type: 'out' },
-    { id: '2', date: 'Aug 27, 2026', entity: 'M-PESA Top Up', amount: '5,000.00', type: 'in' },
-    { id: '3', date: 'Aug 26, 2026', entity: 'KPLC Tokens', amount: '1,000.00', type: 'out' },
-    { id: '4', date: 'Aug 25, 2026', entity: 'ATM Withdrawal', amount: '2,000.00', type: 'out' },
-    { id: '5', date: 'Aug 24, 2026', entity: 'Java House', amount: '850.00', type: 'out' },
-];
+import { ArrowDownToLine, ArrowUpFromLine, ScanLine, X, Clock, Search, Eye, EyeOff } from 'lucide-react-native';
+import { API_BASE_URL } from '../../config/api';
 
 const Dashboard = () => {
     const { role, logout, userToken } = useAuth(); 
     const [balance, setBalance] = useState<number | null>(null);
+    const [pendingBalance, setPendingBalance] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
-    
     const [verifiedRole, setVerifiedRole] = useState(role ? role.toUpperCase() : 'CUSTOMER');
+    
+    const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+    
+    // Privacy Toggle State
+    const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
     const [isModalVisible, setModalVisible] = useState(false);
     const [actionType, setActionType] = useState<'TOP_UP' | 'WITHDRAW' | 'PAY' | null>(null);
-    const [merchantEmail, setMerchantEmail] = useState('');
     const [amount, setAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isWaitingForPin, setIsWaitingForPin] = useState(false);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                // 1. Fetch Wallet Balance
-                const walletResponse = await fetch('http://10.0.2.2:8000/api/wallet/', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${userToken}`,
-                        'Content-Type': 'application/json'
+    const [merchantList, setMerchantList] = useState<any[]>([]);
+    const [merchantSearchQuery, setMerchantSearchQuery] = useState('');
+    const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+
+    const [paymentMethod, setPaymentMethod] = useState<'MPESA' | 'DTBBANK'>('MPESA');
+    const [paymentTarget, setPaymentTarget] = useState('');
+
+    const validateTarget = (method: 'MPESA' | 'DTBBANK', target: string) => {
+        if (!target) return false;
+        if (method === 'DTBBANK') {
+            return /^\d{10}$/.test(target);
+        } else {
+            return /^((\+2547|\+2541)\d{8}|(07|01)\d{8})$/.test(target);
+        }
+    };
+    const isValidTarget = validateTarget(paymentMethod, paymentTarget);
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchDashboardData = async () => {
+                try {
+                    const walletResponse = await fetch(`${API_BASE_URL}/wallet/`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (walletResponse.ok) {
+                        const walletData = await walletResponse.json();
+                        const walletObj = Array.isArray(walletData) ? walletData[0] : walletData;
+                        setBalance(walletObj?.balance ?? walletObj?.available_balance ?? 0);
+                        setPendingBalance(walletObj?.pending_balance ?? 0);
                     }
-                });
-                
-                const walletData = await walletResponse.json();
-                
-                if (walletResponse.ok) {
-                    const walletObj = Array.isArray(walletData) ? walletData[0] : walletData;
-                    setBalance(walletObj?.balance ?? walletObj?.available_balance ?? 0);
-                }
 
-                // 2. Fetch True Role from Profile Endpoint
-              const userResponse = await fetch('http://10.0.2.2:8000/api/auth/me/', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${userToken}`,
-                        'Content-Type': 'application/json'
+                    const userResponse = await fetch(`${API_BASE_URL}/auth/me/`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json' }
+                    });
+
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        if (userData?.role) setVerifiedRole(userData.role.toUpperCase());
                     }
-                });
 
-                const userData = await userResponse.json();
-                console.log("USER DATA PAYLOAD:", userData); // <-- Check your terminal to see the exact fields!
+                    const txResponse = await fetch(`${API_BASE_URL}/transactions/`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json' }
+                    });
 
-                if (userResponse.ok && userData?.role) {
-                    // Forcefully override the role using the absolute source of truth
-                    setVerifiedRole(userData.role.toUpperCase());
+                    if (txResponse.ok) {
+                        const txData = await txResponse.json();
+                        setRecentTransactions(txData.slice(0, 5));
+                    }
+
+                    const merchantsResponse = await fetch(`${API_BASE_URL}/mobile/merchants/`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json' }
+                    });
+
+                    if (merchantsResponse.ok) {
+                        const mData = await merchantsResponse.json();
+                        setMerchantList(mData);
+                    }
+
+                } catch (error) {
+                    console.error("Network error fetching dashboard data:", error);
+                } finally {
+                    setLoading(false);
                 }
+            };
 
-
-            } catch (error) {
-                console.error("Network error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, [userToken]);
+            fetchDashboardData();
+        }, [userToken])
+    );
 
     const openModal = (type: 'TOP_UP' | 'WITHDRAW' | 'PAY') => {
         setActionType(type);
-        setMerchantEmail('');
+        setMerchantSearchQuery('');
+        setSelectedMerchant(null);
         setAmount('');
+        setPaymentMethod('MPESA');
+        setPaymentTarget('');
+        setIsWaitingForPin(false);
         setModalVisible(true);
     };
 
@@ -92,18 +121,34 @@ const Dashboard = () => {
             let endpoint = '';
             let bodyData: any = { amount: Number(amount) };
 
-            if (actionType === 'TOP_UP') {
-                endpoint = 'http://10.0.2.2:8000/api/mobile/topup/'; 
-            } else if (actionType === 'WITHDRAW') {
-                endpoint = 'http://10.0.2.2:8000/api/mobile/withdraw/';
-            } else if (actionType === 'PAY') {
-                if (!merchantEmail) {
-                    Alert.alert("Missing Details", "Please enter the merchant's email address.");
+            if (actionType === 'TOP_UP' || actionType === 'WITHDRAW') {
+                if (!paymentTarget || !isValidTarget) {
+                    Alert.alert("Invalid Details", "Please provide a valid account or phone number.");
                     setIsProcessing(false);
                     return;
                 }
-                endpoint = 'http://10.0.2.2:8000/api/mobile/pay/';
-                bodyData = { amount: Number(amount), merchant_email: merchantEmail.trim() };
+            }
+
+            if (actionType === 'TOP_UP') {
+                setIsWaitingForPin(true);
+                await new Promise<void>(resolve => setTimeout(resolve, 2000));
+                setIsWaitingForPin(false);
+
+                endpoint = `${API_BASE_URL}/mobile/top_up/`; 
+                bodyData = { ...bodyData, method: paymentMethod, source: paymentTarget };
+
+            } else if (actionType === 'WITHDRAW') {
+                endpoint = `${API_BASE_URL}/mobile/withdraw/`;
+                bodyData = { ...bodyData, method: paymentMethod, destination: paymentTarget };
+                
+            } else if (actionType === 'PAY') {
+                if (!selectedMerchant) {
+                    Alert.alert("Missing Details", "Please select a merchant to pay.");
+                    setIsProcessing(false);
+                    return;
+                }
+                endpoint = `${API_BASE_URL}/mobile/pay/`;
+                bodyData = { amount: Number(amount), merchant_email: selectedMerchant.email };
             }
 
             const response = await fetch(endpoint, {
@@ -119,7 +164,17 @@ const Dashboard = () => {
 
             if (response.ok) {
                 setBalance(data.new_balance ?? data.balance); 
-                Alert.alert("Success!", data.message || `Operation completed successfully.`);
+                
+                let successMsg = data.message || "Operation completed successfully.";
+                if (actionType === 'WITHDRAW') {
+                    successMsg = `KES ${amount} successfully credited to ${paymentTarget}`;
+                } else if (actionType === 'PAY') {
+                    successMsg = `KES ${amount} successfully paid to ${selectedMerchant?.name}`;
+                } else if (actionType === 'TOP_UP') {
+                    successMsg = `KES ${amount} successfully deducted from ${paymentTarget} and added to your wallet`;
+                }
+
+                Alert.alert("Success!", successMsg);
                 setModalVisible(false);
             } else {
                 Alert.alert("Failed", data.error || data.detail || "Could not process transaction.");
@@ -131,54 +186,78 @@ const Dashboard = () => {
         }
     };
 
+    const filteredMerchants = merchantList.filter(m => {
+        const formattedId = `MER 0-${m.id}`;
+        return m.name.toLowerCase().includes(merchantSearchQuery.toLowerCase()) || 
+               formattedId.toLowerCase().includes(merchantSearchQuery.toLowerCase());
+    });
+
+    const toggleBalanceVisibility = () => setIsBalanceVisible(!isBalanceVisible);
+
     return (
-        <SafeAreaView className="flex-1 bg-dtb-white">
+        <SafeAreaView className="flex-1 bg-slate-50">
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-                {/* Header Card */}
                 <View className="px-6 pt-4 pb-8 bg-dtb-red rounded-b-3xl shadow-md">
                     <View className="flex-row justify-between items-center mb-6">
                         <Text className="text-white text-2xl font-bold">
-                            {/* Replaced booleans with direct inline check against verifiedRole */}
                             {verifiedRole === 'CUSTOMER' ? 'My Wallet' : 'Merchant Portal'}
                         </Text>
-                        
                         <Pressable onPress={logout} className="bg-black/20 px-4 py-2 rounded-full">
                             <Text className="text-white text-xs font-bold tracking-wider">LOG OUT</Text>
                         </Pressable>
                     </View>
 
                     {verifiedRole === 'CUSTOMER' ? (
-                        <View>
-                            <Text className="text-red-100 text-sm font-medium uppercase tracking-wider">Available Balance</Text>
-                            {loading ? (
-                                <ActivityIndicator size="small" color="#ffffff" className="items-start mt-2" />
-                            ) : (
-                                <Text className="text-white text-4xl font-extrabold mt-1">
-                                    KES {balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                                </Text>
-                            )}
+                        <View className="flex-row justify-between items-end">
+                            <View>
+                                <Text className="text-red-100 text-sm font-medium uppercase tracking-wider">Available Balance</Text>
+                                {loading ? (
+                                    <ActivityIndicator size="small" color="#ffffff" className="items-start mt-2" />
+                                ) : (
+                                    <Text className="text-white text-4xl font-extrabold mt-1">
+                                        {isBalanceVisible 
+                                            ? `KES ${balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
+                                            : '****'}
+                                    </Text>
+                                )}
+                            </View>
+                            <Pressable onPress={toggleBalanceVisibility} className="p-2 mb-1 bg-black/10 rounded-full">
+                                {isBalanceVisible ? <EyeOff color="#ffffff" size={20} /> : <Eye color="#ffffff" size={20} />}
+                            </Pressable>
                         </View>
                     ) : (
-                        <View className="flex-row justify-between">
+                        <View className="flex-row justify-between items-start">
                             <View>
                                 <Text className="text-red-100 text-sm font-medium uppercase tracking-wider">Available</Text>
                                 {loading ? (
                                     <ActivityIndicator size="small" color="#ffffff" className="items-start mt-2" />
                                 ) : (
-                                    <Text className="text-white text-3xl font-extrabold mt-1">
-                                        KES {balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                                    </Text>
+                                    <View className="flex-row items-center">
+                                        <Text className="text-white text-3xl font-extrabold mt-1">
+                                            {isBalanceVisible 
+                                                ? `KES ${balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
+                                                : '****'}
+                                        </Text>
+                                    </View>
                                 )}
                             </View>
                             <View className="items-end">
-                                <Text className="text-red-100 text-sm font-medium uppercase tracking-wider">Pending</Text>
-                                <Text className="text-dtb-yellow text-3xl font-extrabold mt-1">KES 0.00</Text>
+                                <View className="flex-row items-center justify-end">
+                                    <Text className="text-red-100 text-sm font-medium uppercase tracking-wider mr-2">Pending</Text>
+                                    <Pressable onPress={toggleBalanceVisibility} className="p-1.5 bg-black/10 rounded-full">
+                                        {isBalanceVisible ? <EyeOff color="#ffffff" size={16} /> : <Eye color="#ffffff" size={16} />}
+                                    </Pressable>
+                                </View>
+                                <Text className="text-dtb-yellow text-3xl font-extrabold mt-1">
+                                    {isBalanceVisible 
+                                        ? `KES ${pendingBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
+                                        : '****'}
+                                </Text>  
                             </View>
                         </View>
                     )}
                 </View>
 
-                {/* Quick Actions */}
                 <View className="px-6 mt-8">
                     <Text className="text-dtb-navy text-lg font-bold mb-4">
                         {verifiedRole === 'CUSTOMER' ? 'Quick Actions' : 'Overview'}
@@ -214,31 +293,63 @@ const Dashboard = () => {
                     )}
                 </View>
 
-                {/* Recent Transactions List */}
                 <View className="px-6">
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-dtb-navy text-lg font-bold">Recent Transactions</Text>
-                        <Star color="#90EE90" size={18} />
                         <Clock color="#9CA3AF" size={18} />
                     </View>
 
-                    {RECENT_TRANSACTIONS.map((txn) => (
-                        <View key={txn.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex-row justify-between items-center mb-3">
-                            <View>
-                                <Text className="text-dtb-navy font-bold text-base">{txn.entity}</Text>
-                                <Text className="text-gray-400 text-xs mt-1">{txn.date}</Text>
-                            </View>
-                            <View className="items-end">
-                                <Text className={`font-extrabold ${txn.type === 'in' ? 'text-green-600' : 'text-dtb-navy'}`}>
-                                    {txn.type === 'in' ? '+' : '-'} KES {txn.amount}
-                                </Text>
-                            </View>
-                        </View>
-                    ))}
+                    {recentTransactions.length > 0 ? (
+                        recentTransactions.map((txn) => {
+                            let counterpart = 'Unknown Entity';
+                            if (verifiedRole === 'CUSTOMER') {
+                                counterpart = txn.merchant_name || txn.merchant_username || txn.merchant?.name || txn.merchant?.username || (typeof txn.merchant === 'string' ? txn.merchant : 'Unknown Merchant');
+                            } else {
+                                counterpart = txn.customer_name || txn.customer_username || txn.customer?.name || txn.customer?.username || (typeof txn.customer === 'string' ? txn.customer : 'Unknown Customer');
+                            }
+                            
+                            const rawStatus = txn.status ? txn.status.toUpperCase() : '';
+                            let displayStatus = 'COMPLETED'; 
+                            let statusColor = 'text-green-600';
+                            
+                            if (rawStatus === 'PAID' || rawStatus === 'COMPLETED' || rawStatus === 'SUCCESS') {
+                                displayStatus = 'COMPLETED';
+                                statusColor = 'text-green-600';
+                            } else if (rawStatus === '-' || rawStatus === 'FAILED' || rawStatus === 'REJECTED') {
+                                displayStatus = 'FAILED/REJECTED';
+                                statusColor = 'text-dtb-red';
+                            } else if (rawStatus === 'PENDING') {
+                                displayStatus = 'PENDING';
+                                statusColor = 'text-dtb-yellow';
+                            }
+
+                            const isIncoming = verifiedRole === 'MERCHANT' && txn.transaction_type?.toUpperCase() === 'PAYMENT';
+
+                            return (
+                                <View key={txn.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex-row justify-between items-center mb-3">
+                                    <View>
+                                        <Text className="text-dtb-navy font-bold text-base">{counterpart}</Text>
+                                        <Text className="text-gray-400 text-xs mt-1">
+                                            {txn.created_at ? new Date(txn.created_at).toLocaleDateString() : 'Recent'}
+                                        </Text>
+                                    </View>
+                                    <View className="items-end">
+                                        <Text className={`font-extrabold ${isIncoming ? 'text-green-600' : 'text-dtb-navy'}`}>
+                                            {isIncoming ? '+' : '-'} KES {txn.amount}
+                                        </Text>
+                                        <Text className={`text-[10px] font-bold mt-1 ${statusColor}`}>
+                                            {displayStatus}
+                                        </Text>
+                                    </View>
+                                </View>
+                            );
+                        })
+                    ) : (
+                        <Text className="text-gray-400 text-center py-4">No recent activity.</Text>
+                    )}
                 </View>
             </ScrollView>
 
-            {/* Transaction Modal */}
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -256,18 +367,94 @@ const Dashboard = () => {
                             </Pressable>
                         </View>
 
-                        {actionType === 'PAY' && (
-                            <View className="mb-4">
-                                <Text className="text-dtb-navy font-semibold mb-2">Merchant Email</Text>
+                        {(actionType === 'WITHDRAW' || actionType === 'TOP_UP') && (
+                            <View className="mb-6">
+                                <Text className="text-dtb-navy font-semibold mb-3">
+                                    {actionType === 'TOP_UP' ? 'Select Source' : 'Select Destination'}
+                                </Text>
+                                <View className="flex-row gap-3 mb-4">
+                                    <Pressable onPress={() => { setPaymentMethod('MPESA'); setPaymentTarget(''); }} className={`flex-1 py-3 rounded-lg items-center border ${paymentMethod === 'MPESA' ? 'bg-dtb-red border-dtb-red' : 'bg-gray-50 border-gray-200'}`}>
+                                        <Text className={`font-bold text-xs ${paymentMethod === 'MPESA' ? 'text-white' : 'text-gray-500'}`}>M-PESA</Text>
+                                    </Pressable>
+
+                                    <Pressable onPress={() => { setPaymentMethod('DTBBANK'); setPaymentTarget(''); }} className={`flex-1 py-3 rounded-lg items-center border ${paymentMethod === 'DTBBANK' ? 'bg-dtb-red border-dtb-red' : 'bg-gray-50 border-gray-200'}`}>
+                                        <Text className={`font-bold text-xs ${paymentMethod === 'DTBBANK' ? 'text-white' : 'text-gray-500'}`}>DTB Bank</Text>
+                                    </Pressable>
+                                </View>
+
+                                <Text className="text-dtb-navy font-semibold mb-2">
+                                    {paymentMethod === 'MPESA' ? 'Phone Number' : 'Account Number'}
+                                </Text>
                                 <TextInput
-                                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-dtb-navy"
-                                    placeholder="e.g. merchant@dtb.co.ke"
+                                    className={`bg-gray-50 border rounded-lg px-4 py-3 mb-1 text-dtb-navy text-base font-medium ${
+                                        paymentTarget.length > 0 ? (isValidTarget ? 'border-green-500' : 'border-red-500') : 'border-gray-200'
+                                    }`}
+                                    placeholder={paymentMethod === 'MPESA' ? '+2547... or 07...' : '10-digit Account No'}
                                     placeholderTextColor="#9CA3AF"
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                    value={merchantEmail}
-                                    onChangeText={setMerchantEmail}
+                                    keyboardType={paymentMethod === 'MPESA' ? 'phone-pad' : 'numeric'}
+                                    value={paymentTarget}
+                                    onChangeText={setPaymentTarget}
                                 />
+                                {paymentTarget.length > 0 && (
+                                    <Text className={`text-xs font-bold mb-2 ${isValidTarget ? 'text-green-600' : 'text-red-500'}`}>
+                                        {isValidTarget ? 'Valid' : 'Invalid, try again please'}
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+
+                        {actionType === 'PAY' && (
+                            <View className="mb-6">
+                                <Text className="text-dtb-navy font-semibold mb-2">Select Merchant</Text>
+                                {!selectedMerchant ? (
+                                    <View>
+                                        <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-2">
+                                            <Search color="#9CA3AF" size={20} />
+                                            <TextInput
+                                                className="flex-1 ml-3 text-dtb-navy"
+                                                placeholder="Search by Name or MER 0- ID"
+                                                placeholderTextColor="#9CA3AF"
+                                                value={merchantSearchQuery}
+                                                onChangeText={setMerchantSearchQuery}
+                                            />
+                                        </View>
+                                        
+                                        {merchantSearchQuery.length > 0 && (
+                                            <View className="bg-white border border-gray-200 rounded-lg overflow-hidden max-h-40">
+                                                <ScrollView nestedScrollEnabled={true}>
+                                                    {filteredMerchants.length > 0 ? (
+                                                        filteredMerchants.map((merchant, index) => (
+                                                            <Pressable 
+                                                                key={merchant.id}
+                                                                onPress={() => setSelectedMerchant(merchant)}
+                                                                className={`p-3 flex-row justify-between items-center ${index !== filteredMerchants.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                                            >
+                                                                <View>
+                                                                    <Text className="text-dtb-navy font-bold">{merchant.name}</Text>
+                                                                    <Text className="text-dtb-red font-medium text-xs mt-1">
+                                                                        MER 0-{merchant.id}
+                                                                    </Text>
+                                                                </View>
+                                                            </Pressable>
+                                                        ))
+                                                    ) : (
+                                                        <Text className="p-3 text-center text-gray-500">No merchants found.</Text>
+                                                    )}
+                                                </ScrollView>
+                                            </View>
+                                        )}
+                                    </View>
+                                ) : (
+                                    <View className="bg-green-50 border border-green-200 rounded-lg p-4 flex-row justify-between items-center">
+                                        <View>
+                                            <Text className="text-green-800 font-bold">{selectedMerchant.name}</Text>
+                                            <Text className="text-green-600 font-medium text-xs mt-1">MER 0-{selectedMerchant.id}</Text>
+                                        </View>
+                                        <Pressable onPress={() => setSelectedMerchant(null)} className="p-2 bg-white rounded-full border border-green-200">
+                                            <X color="#166534" size={16} />
+                                        </Pressable>
+                                    </View>
+                                )}
                             </View>
                         )}
 
@@ -281,13 +468,14 @@ const Dashboard = () => {
                             onChangeText={setAmount}
                         />
 
-                        <Pressable 
-                            onPress={handleTransaction}
-                            disabled={isProcessing}
-                            className={`w-full py-4 rounded-lg items-center ${isProcessing ? 'bg-dtb-red/70' : 'bg-dtb-red'}`}
-                        >
+                        <Pressable  onPress={handleTransaction} disabled={isProcessing} className={`w-full py-4 rounded-lg items-center ${isProcessing ? (isWaitingForPin ? 'bg-dtb-yellow/90' : 'bg-dtb-red/70') : 'bg-dtb-red'}`} >
                             {isProcessing ? (
-                                <ActivityIndicator color="#ffffff" />
+                                <View className="flex-row items-center">
+                                    <ActivityIndicator color="#ffffff" className="mr-2" />
+                                    <Text className="text-white font-bold text-lg">
+                                        {isWaitingForPin ? 'Waiting for PIN...' : 'Processing...'}
+                                    </Text>
+                                </View>
                             ) : (
                                 <Text className="text-white font-bold text-lg">
                                     {actionType === 'TOP_UP' ? 'Confirm Top Up' : actionType === 'WITHDRAW' ? 'Confirm Withdrawal' : 'Send Payment'}

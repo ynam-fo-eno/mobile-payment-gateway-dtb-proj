@@ -9,7 +9,7 @@
     "**/*.ts",
     "**/*.tsx",
     "nativewind-env.d.ts"
-  ],
+, "ReactotronConfig.js"  ],
   "exclude": [
     "**/node_modules",
     "**/Pods"

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import { API_BASE_URL } from '../../config/api';
 
 const Register = () => {
     const [name, setName] = useState('');
@@ -12,43 +13,43 @@ const Register = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [creating, setCreating] = useState(false);
+    
     const [role, setRole] = useState<'CUSTOMER' | 'MERCHANT'>('CUSTOMER');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
     const navigation = useNavigation<any>();
-    const { login } = useAuth(); // Using context to auto-login after successful registration
+    const { login } = useAuth(); 
 
     const handleRegister = async () => {
-        // 1. Validation: Empty fields
         if (!name || !email || !password || !confirmPassword) {
             setError('Please fill in all fields.');
             return;
         }
 
-        // 2. Validation: Email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setError('Please enter a valid email address.');
             return;
         }
 
-        // 3. Validation: Password strength
         if (password.length < 6) {
             setError('Password must be at least 6 characters.');
             return;
         }
 
-        // 4. Validation: Passwords match
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
             return;
         }
+        
         setCreating(true);
         setError('');
 
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/auth/register/', {
+            const response = await fetch(`${API_BASE_URL}/auth/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,32 +67,22 @@ const Register = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Redirect to login and pass a success message parameter
                 navigation.navigate('Login', { successMessage: 'Account created successfully! Please log in.' });
             } else {
-                console.log("Django Validation Error:", data);
-                
-                // --- NEW DRF ERROR PARSER ---
                 let errorMessage = 'Failed to create account.';
-                
-                // If Django sends a standard detail/message key
                 if (data.message || data.detail) {
                     errorMessage = data.message || data.detail;
-                } 
-                // If Django sends field-specific errors (e.g. {"username": ["Taken"]})
-                else if (data && typeof data === 'object') {
+                } else if (data && typeof data === 'object') {
                     const firstKey = Object.keys(data)[0]; 
                     if (firstKey) {
                         const errorContent = data[firstKey];
                         if (Array.isArray(errorContent)) {
-                            // Format: "username: A user with that username already exists."
                             errorMessage = `${firstKey}: ${errorContent[0]}`;
                         } else if (typeof errorContent === 'string') {
                             errorMessage = `${firstKey}: ${errorContent}`;
                         }
                     }
                 }
-                
                 setError(errorMessage);
             }
         } catch (err) {
@@ -103,118 +94,129 @@ const Register = () => {
     };
 
     return (
-        <SafeAreaView className='flex-1 bg-[#E32C22] justify-center px-8'>
+        <SafeAreaView className='flex-1 bg-red-800 px-8'>
             <KeyboardAvoidingView 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className='flex-1 justify-center'
+                className='flex-1'
             >
-                <View className="flex-row items-center py-4 mb-2">
-                    <Pressable onPress={() => navigation.goBack()} className="p-2 -ml-2 rounded-full active:bg-black/10">
-                        <ArrowLeft color="white" size={24} />
-                    </Pressable>
-                </View>
-
-                <View className='w-full max-w-[450px] mx-auto'>
-                    <View className='w-full mb-8 justify-center'>
-                        <Text className='text-4xl font-bold mb-2 text-white'>Create Wallet</Text>
-                        <Text className='text-lg text-red-100'>Join the DTB digital ecosystem.</Text>
-                    </View>
-
-                    {/* Role Simulator Toggle */}
-                    <View className="flex-row bg-red-800/50 p-1 rounded-lg mb-6">
-                        <Pressable 
-                            onPress={() => setRole('CUSTOMER')}
-                            className={`flex-1 py-2 items-center rounded-md ${role === 'CUSTOMER' ? 'bg-white' : ''}`}
-                        >
-                            <Text className={`font-semibold ${role === 'CUSTOMER' ? 'text-[#E32C22]' : 'text-white'}`}>Personal</Text>
-                        </Pressable>
-                        <Pressable 
-                            onPress={() => setRole('MERCHANT')}
-                            className={`flex-1 py-2 items-center rounded-md ${role === 'MERCHANT' ? 'bg-white' : ''}`}
-                        >
-                            <Text className={`font-semibold ${role === 'MERCHANT' ? 'text-[#E32C22]' : 'text-white'}`}>Business</Text>
+                <ScrollView contentContainerStyle={{ paddingTop: 32, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+                    
+                    <View className="flex-row items-center mb-6">
+                        <Pressable onPress={() => navigation.goBack()} className="p-2 -ml-2 rounded-full active:bg-black/10">
+                            <ArrowLeft color="white" size={24} />
                         </Pressable>
                     </View>
 
-                    <View className='w-full mb-4'>
-                        <View className="bg-white/10 rounded-lg p-2 mb-4">
-                            <TextInput
-                                placeholder='Full Name or Business Name'
-                                placeholderTextColor='#fca5a5'
-                                className='w-full text-white px-4 py-3 text-base'
-                                value={name}
-                                onChangeText={setName}
-                                autoCapitalize='none'
-                            />
-                        </View>
-                        <View className="bg-white/10 rounded-lg p-2 mb-4">
-                            <TextInput
-                                placeholder='Email address'
-                                placeholderTextColor='#fca5a5'
-                                className='w-full text-white px-4 py-3 text-base'
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType='email-address'
-                                autoCapitalize='none'
-                            />
-                        </View>
-                       {/* Password Input with Toggle */}
-                        <View className="bg-white/10 rounded-lg p-2 mb-4">
-                            <TextInput
-                                placeholder="Password"
-                                placeholderTextColor="#9CA3AF"
-                                className='w-full text-white px-4 py-3 text-base'
-                                secureTextEntry={!showPassword}
-                                value={password}
-                                onChangeText={setPassword}
-                            />
-                            <Pressable 
-                                onPress={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 py-2"
-                            >
-                                <Text className="text-dtb-red font-bold text-xs mt-2">
-                                    {showPassword ? 'HIDE' : 'SHOW'}
-                                </Text>
-                            </Pressable>
+                    <View className='w-full max-w-[450px] mx-auto'>
+                        <View className='w-full mb-8'>
+                            <Text className='text-4xl font-bold mb-2 text-white'>Create Wallet</Text>
+                            <Text className='text-lg text-red-100'>Join the DTB digital ecosystem.</Text>
                         </View>
 
-                        {/* Confirm Password Input with Toggle */}
-                        <View className="bg-white/10 rounded-lg p-2 mb-4">
-                            <TextInput
-                                className="w-full text-white px-4 py-3 text-base"
-                                placeholder="Confirm Password"
-                                placeholderTextColor="#9CA3AF"
-                                secureTextEntry={!showConfirmPassword}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                            />
+                        {/* Accordion Dropdown over pill buttons */}
+                        <View className="mb-6">
+                            <Text className="text-red-100 text-sm font-medium mb-2 uppercase tracking-wider">Account Type</Text>
                             <Pressable 
-                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-4 py-2"
+                                onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                                className="bg-white/20 border border-white/30 p-4 rounded-lg flex-row justify-between items-center"
                             >
-                                <Text className="text-dtb-red font-bold text-xs mt-2">
-                                    {showConfirmPassword ? 'HIDE' : 'SHOW'}
+                                <Text className="text-white font-bold text-base">
+                                    {role === 'CUSTOMER' ? 'Personal Account' : 'Business Account'}
                                 </Text>
+                                <Text className="text-white font-bold tracking-widest">{isDropdownOpen ? '▲' : '▼'}</Text>
                             </Pressable>
+                            
+                            {isDropdownOpen && (
+                                <View className="bg-red-900 border border-white/20 rounded-lg mt-2 overflow-hidden shadow-lg">
+                                    <Pressable 
+                                        onPress={() => { setRole('CUSTOMER'); setIsDropdownOpen(false); }}
+                                        className={`p-4 border-b border-white/10 ${role === 'CUSTOMER' ? 'bg-black/20' : ''}`}
+                                    >
+                                        <Text className="text-white font-medium">Personal Account</Text>
+                                    </Pressable>
+                                    <Pressable 
+                                        onPress={() => { setRole('MERCHANT'); setIsDropdownOpen(false); }}
+                                        className={`p-4 ${role === 'MERCHANT' ? 'bg-black/20' : ''}`}
+                                    >
+                                        <Text className="text-white font-medium">Business Account</Text>
+                                    </Pressable>
+                                </View>
+                            )}
                         </View>
+
+                        <View className='w-full mb-4'>
+                            <View className="bg-white/20 rounded-lg border border-white/30 mb-4">
+                                <TextInput
+                                    placeholder={role === 'MERCHANT' ? 'Business Name' : 'Full Name'}
+                                    placeholderTextColor='#E2E8F0'
+                                    className='w-full text-white px-4 py-4 text-base'
+                                    value={name}
+                                    onChangeText={setName}
+                                    autoCapitalize='words'
+                                />
+                            </View>
+
+                            <View className="bg-white/20 rounded-lg border border-white/30 mb-4">
+                                <TextInput
+                                    placeholder='Email address'
+                                    placeholderTextColor='#E2E8F0'
+                                    className='w-full text-white px-4 py-4 text-base'
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    keyboardType='email-address'
+                                    autoCapitalize='none'
+                                />
+                            </View>
+
+                            <View className="bg-white/20 rounded-lg border border-white/30 mb-4">
+                                <TextInput
+                                    placeholder="Password"
+                                    placeholderTextColor="#E2E8F0"
+                                    className='w-full text-white px-4 py-4 text-base'
+                                    secureTextEntry={!showPassword}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                />
+                                <Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-4 top-4">
+                                    <Text className="text-white font-bold text-xs tracking-wider">
+                                        {showPassword ? 'HIDE' : 'SHOW'}
+                                    </Text>
+                                </Pressable>
+                            </View>
+
+                            <View className="bg-white/20 rounded-lg border border-white/30 mb-4">
+                                <TextInput
+                                    className="w-full text-white px-4 py-4 text-base"
+                                    placeholder="Confirm Password"
+                                    placeholderTextColor="#E2E8F0"
+                                    secureTextEntry={!showConfirmPassword}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                />
+                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-4">
+                                    <Text className="text-white font-bold text-xs tracking-wider">
+                                        {showConfirmPassword ? 'HIDE' : 'SHOW'}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </View>
+
+                        {error ? <Text className='text-yellow-300 mb-4 text-center font-medium'>{error}</Text> : null}
+
+                        <Pressable
+                            onPress={handleRegister}
+                            disabled={creating}
+                            className={`w-full bg-white mt-4 mb-8 rounded-lg p-4 items-center justify-center shadow-sm ${creating ? 'opacity-70' : 'opacity-100'}`}
+                        >
+                            <Text className='text-red-800 font-bold text-lg'>
+                                {creating ? 'Creating...' : 'Create Account'}
+                            </Text>
+                        </Pressable>
                     </View>
-
-                    {/* Error Message Display */}
-                    {error ? <Text className='text-yellow-300 mb-4 text-center font-medium'>{error}</Text> : null}
-
-                    <Pressable
-                        onPress={handleRegister}
-                        disabled={creating}
-                        className={`w-full bg-white my-2 rounded-lg p-4 items-center justify-center shadow-sm ${creating ? 'opacity-70' : 'opacity-100'}`}
-                    >
-                        <Text className='text-[#E32C22] font-bold text-lg'>
-                            {creating ? 'Creating...' : 'Create Account'}
-                        </Text>
-                    </Pressable>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
 
-export default Register;
+export default Register; 

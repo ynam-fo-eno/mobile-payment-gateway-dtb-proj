@@ -20,11 +20,16 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const TabNavigator = () => (
-  <Tab.Navigator 
+  <Tab.Navigator
     screenOptions={({ route }) => ({
-      headerShown: false, 
-      tabBarActiveTintColor: '#E32C22',
-      tabBarInactiveClassName: 'text-gray-400',
+      headerShown: false,
+      tabBarActiveTintColor: '#f05d22', 
+      tabBarInactiveTintColor: '#000052', 
+      tabBarStyle: {
+        backgroundColor: '#ffffff', 
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9', 
+      },
       tabBarIcon: ({ color, size }) => {
         if (route.name === 'Dashboard') {
           return <LayoutDashboard color={color} size={size} />;
@@ -32,7 +37,7 @@ const TabNavigator = () => (
           return <WalletCards color={color} size={size} />;
         } else if (route.name === 'History') {
           return <HistoryIcon color={color} size={size} />;
-        }else if (route.name === 'Profile') {
+        } else if (route.name === 'Profile') {
           return <User color={color} size={size} />;
         }
       },
