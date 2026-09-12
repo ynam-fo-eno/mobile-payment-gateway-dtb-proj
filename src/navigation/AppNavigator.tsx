@@ -11,10 +11,16 @@ import Splash from '../screens/onboarding/Splash';
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
 
-import Dashboard from '../screens/tabs/Dashboard'; 
-import Payments from '../screens/tabs/Payments';
-import History from '../screens/tabs/History';
-import Profile from '../screens/tabs/Profile';
+import Dashboard from '../screens/main-tabs/Dashboard'; 
+import Payments from '../screens/main-tabs/Payments';
+import History from '../screens/main-tabs/History';
+import Profile from '../screens/main-tabs/Profile';
+
+// Import the new transaction screens
+import TopUpScreen from '../screens/transactions/TopUpScreen';
+import PayScreen from '../screens/transactions/PayScreen';
+import Confirmation from '../screens/transactions/Confirmation';
+import PaymentStatus from '../screens/transactions/PaymentStatus';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -58,7 +64,17 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {userToken ? (
           /* Main App Flow - Rendered automatically when logged in */
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <>
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            
+            {/* Transaction Flow - Stacked over the main tabs as modals */}
+            <Stack.Group screenOptions={{ presentation: 'modal' }}>
+              <Stack.Screen name="TopUp" component={TopUpScreen} />
+              <Stack.Screen name="Pay" component={PayScreen} />
+              <Stack.Screen name="Confirmation" component={Confirmation} />
+              <Stack.Screen name="PaymentStatus" component={PaymentStatus} />
+            </Stack.Group>
+          </>
         ) : (
           /* Auth Flow - Rendered when logged out or fresh app boot */
           <>

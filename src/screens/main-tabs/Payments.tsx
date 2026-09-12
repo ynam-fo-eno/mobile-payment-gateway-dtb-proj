@@ -41,7 +41,7 @@ const Payments = () => {
                         }
                     }
 
-                    // 2. Fetch specific data based on role using real web endpoints
+                    // 2. Fetch specific data based on role
                     if (currentRole === 'CUSTOMER') {
                         const reqResponse = await fetch(`${API_BASE_URL}/payments/pending/`, {
                             headers: { 'Authorization': `Bearer ${userToken}` }
@@ -137,10 +137,14 @@ const Payments = () => {
         );
     };
 
-    const filteredCustomers = customerList.filter(c => 
-        c.name?.toLowerCase().includes(customerSearchQuery.toLowerCase()) || 
-        c.email?.toLowerCase().includes(customerSearchQuery.toLowerCase())
-    );
+    // --- THE BULLETPROOF SEARCH FIX ---
+    const filteredCustomers = customerList.filter(c => {
+        const query = customerSearchQuery.toLowerCase().trim(); // Ignores accidental spaces
+        const customerName = (c.name || c.username || '').toLowerCase();
+        const customerEmail = (c.email || '').toLowerCase();
+        
+        return customerName.includes(query) || customerEmail.includes(query);
+    });
 
     return (
         <SafeAreaView className="flex-1 bg-slate-50">
@@ -217,7 +221,7 @@ const Payments = () => {
                                                     onPress={() => setSelectedCustomer(cust)}
                                                     className="p-3 border-b border-gray-100"
                                                 >
-                                                    <Text className="text-dtb-navy font-bold">{cust.name}</Text>
+                                                    <Text className="text-dtb-navy font-bold">{cust.name || cust.username}</Text>
                                                     <Text className="text-gray-500 text-xs">{cust.email}</Text>
                                                 </Pressable>
                                             ))}
@@ -228,7 +232,7 @@ const Payments = () => {
                         ) : (
                             <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex-row justify-between items-center mb-4">
                                 <View>
-                                    <Text className="text-blue-900 font-bold">{selectedCustomer.name}</Text>
+                                    <Text className="text-blue-900 font-bold">{selectedCustomer.name || selectedCustomer.username}</Text>
                                     <Text className="text-blue-700 text-xs">{selectedCustomer.email}</Text>
                                 </View>
                                 <Pressable onPress={() => setSelectedCustomer(null)} className="p-2 bg-white rounded-full border border-blue-200">
