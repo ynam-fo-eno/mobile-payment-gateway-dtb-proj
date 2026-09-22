@@ -5,10 +5,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { Search, Check, X } from 'lucide-react-native';
 import { API_BASE_URL } from '../../config/api';
+// IMPORT THE ERROR HANDLER
+import { parseApiError } from '../../utils/errorHandler';
 
 const Payments = () => {
     const { userToken, role } = useAuth(); 
-    const [verifiedRole, setVerifiedRole] = useState(role ? role.toUpperCase() : 'CUSTOMER');
+    const verifiedRole = role ? role.toUpperCase() : 'CUSTOMER';
+    
     const [loading, setLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -26,23 +29,8 @@ const Payments = () => {
         useCallback(() => {
             const fetchPaymentData = async () => {
                 try {
-                    // 1. Verify Role
-                    const userResponse = await fetch(`${API_BASE_URL}/auth/me/`, {
-                        method: 'GET',
-                        headers: { 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json' }
-                    });
-                    
-                    let currentRole = verifiedRole;
-                    if (userResponse.ok) {
-                        const userData = await userResponse.json();
-                        if (userData?.role) {
-                            currentRole = userData.role.toUpperCase();
-                            setVerifiedRole(currentRole);
-                        }
-                    }
-
-                    // 2. Fetch specific data based on role
-                    if (currentRole === 'CUSTOMER') {
+                    // Directly fetch specific data based on the context role!
+                    if (verifiedRole === 'CUSTOMER') {
                         const reqResponse = await fetch(`${API_BASE_URL}/payments/pending/`, {
                             headers: { 'Authorization': `Bearer ${userToken}` }
                         });
@@ -60,10 +48,9 @@ const Payments = () => {
                 }
             };
             fetchPaymentData();
-        }, [userToken])
+        }, [userToken, verifiedRole])
     );
 
-    // --- MERCHANT ACTION ---
     const handleSendRequest = async () => {
         if (!selectedCustomer || !amount || !description) {
             Alert.alert("Error", "Please select a customer, enter an amount, and add a description.");
@@ -84,6 +71,8 @@ const Payments = () => {
                 })
             });
             
+            const data = await response.json();
+
             if (response.ok) {
                 Alert.alert("Success", "Payment request sent successfully!");
                 setSelectedCustomer(null);
@@ -91,8 +80,8 @@ const Payments = () => {
                 setDescription('');
                 setCustomerSearchQuery('');
             } else {
-                const data = await response.json();
-                Alert.alert("Failed", data.error || "Could not send request.");
+                // THE FIX IS APPLIED HERE
+                Alert.alert("Failed", parseApiError(data, "Could not send request."));
             }
         } catch (error) {
             Alert.alert("Error", "Network connection failed.");
@@ -101,7 +90,6 @@ const Payments = () => {
         }
     };
 
-    // --- CUSTOMER ACTIONS ---
     const handleRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
         Alert.alert(
             `Confirm ${action}`,
@@ -119,12 +107,14 @@ const Payments = () => {
                                 headers: { 'Authorization': `Bearer ${userToken}` }
                             });
                             
+                            const data = await response.json();
+
                             if (response.ok) {
-                                Alert.alert("Success", `Request ${action}d successfully.`);
+                                Alert.alert("Success", `Request ${action}${action.endsWith('e') ? 'd' : 'ed'} successfully.`);
                                 setPendingRequests(prev => prev.filter(req => req.id !== requestId));
                             } else {
-                                const data = await response.json();
-                                Alert.alert("Failed", data.error || `Could not ${action} request.`);
+                                // THE FIX IS APPLIED HERE
+                                Alert.alert("Failed", parseApiError(data, `Could not ${action} request.`));
                             }
                         } catch (error) {
                             Alert.alert("Error", "Network connection failed.");
@@ -137,12 +127,10 @@ const Payments = () => {
         );
     };
 
-    // --- THE BULLETPROOF SEARCH FIX ---
     const filteredCustomers = customerList.filter(c => {
-        const query = customerSearchQuery.toLowerCase().trim(); // Ignores accidental spaces
+        const query = customerSearchQuery.toLowerCase().trim();
         const customerName = (c.name || c.username || '').toLowerCase();
         const customerEmail = (c.email || '').toLowerCase();
-        
         return customerName.includes(query) || customerEmail.includes(query);
     });
 

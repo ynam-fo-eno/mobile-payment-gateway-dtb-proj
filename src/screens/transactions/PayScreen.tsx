@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { X, BanknoteArrowUp, Search } from 'lucide-react-native';
+import { X, BanknoteArrowUp, Search, Check } from 'lucide-react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { API_BASE_URL } from '../../config/api';
+import { parseApiError } from '../../utils/errorHandler'; // Added helper
 
 const PayScreen = () => {
     const navigation = useNavigation<any>();
@@ -15,6 +16,7 @@ const PayScreen = () => {
     const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
     const [amount, setAmount] = useState('');
     const [isLoadingMerchants, setIsLoadingMerchants] = useState(true);
+    const [fetchError, setFetchError] = useState(''); // Added to display errors if merchants fail to load
 
     useEffect(() => {
         const fetchMerchants = async () => {
@@ -27,9 +29,12 @@ const PayScreen = () => {
                 if (response.ok) {
                     const data = await response.json();
                     setMerchantList(data);
+                } else {
+                    const data = await response.json();
+                    setFetchError(parseApiError(data, "Failed to load merchants."));
                 }
             } catch (error) {
-                console.error("Failed to fetch merchants:", error);
+                setFetchError("Network error. Could not connect to server.");
             } finally {
                 setIsLoadingMerchants(false);
             }
@@ -45,13 +50,15 @@ const PayScreen = () => {
                formattedId.toLowerCase().includes(merchantSearchQuery.toLowerCase());
     });
 
+    const isValidAmount = amount.trim() !== '' && !isNaN(Number(amount)) && Number(amount) > 0;
+
     const handleProceed = () => {
         if (!selectedMerchant) {
             Alert.alert("Missing Details", "Please select a merchant to pay.");
             return;
         }
 
-        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        if (!isValidAmount) {
             Alert.alert("Invalid Amount", "Please enter a valid number greater than 0.");
             return;
         }
@@ -72,7 +79,7 @@ const PayScreen = () => {
                 <View className="flex-row justify-between items-center mb-8">
                     <View className="flex-row items-center">
                         <View className="bg-red-50 p-3 rounded-full mr-3">
-                            <BanknoteArrowUp color="#E32C22" size={24} />
+                            <BanknoteArrowUp color="#962323" size={24} />
                         </View>
                         <Text className="text-2xl font-bold text-dtb-navy">Pay Merchant</Text>
                     </View>
@@ -100,7 +107,9 @@ const PayScreen = () => {
                                 </View>
                                 
                                 {isLoadingMerchants ? (
-                                    <ActivityIndicator size="small" color="#E32C22" className="mt-4" />
+                                    <ActivityIndicator size="small" color="#962323" className="mt-4" />
+                                ) : fetchError ? (
+                                    <Text className="text-red-500 text-center font-medium mt-2">{fetchError}</Text>
                                 ) : (
                                     merchantSearchQuery.length > 0 && (
                                         <View className="bg-white border border-gray-200 rounded-xl overflow-hidden max-h-60 shadow-sm mt-1">
@@ -130,10 +139,6 @@ const PayScreen = () => {
                                 )}
                             </View>
                         ) : (
-                            /* 
-                              BYPASSING NATIVEWIND ENTIRELY HERE 
-                              Using pure React Native styles guarantees css-interop won't crash on state change 
-                            */
                             <View style={{
                                 backgroundColor: '#f0fdf4',
                                 borderColor: '#bbf7d0',
@@ -170,14 +175,17 @@ const PayScreen = () => {
 
                     <View className="mb-8">
                         <Text className="text-dtb-navy font-semibold mb-2">Amount (KES)</Text>
-                        <TextInput
-                            className="bg-white border border-gray-200 rounded-xl px-5 py-4 text-dtb-navy text-2xl font-bold shadow-sm"
-                            placeholder="0.00"
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType="numeric"
-                            value={amount}
-                            onChangeText={setAmount}
-                        />
+                        <View className={`flex-row items-center bg-white border rounded-xl px-5 py-1 shadow-sm ${amount.length > 0 ? (isValidAmount ? 'border-green-500' : 'border-red-400') : 'border-gray-200'}`}>
+                            <TextInput
+                                className="flex-1 text-dtb-navy text-2xl font-bold py-3"
+                                placeholder="0.00"
+                                placeholderTextColor="#9CA3AF"
+                                keyboardType="numeric"
+                                value={amount}
+                                onChangeText={setAmount}
+                            />
+                            {isValidAmount && <Check color="#16a34a" size={24} />}
+                        </View>
                     </View>
 
                 </ScrollView>

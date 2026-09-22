@@ -5,13 +5,14 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { API_BASE_URL } from '../../config/api';
 import { ArrowLeft } from 'lucide-react-native';
+// IMPORT THE ERROR HANDLER
+import { parseApiError } from '../../utils/errorHandler';
 
 const Confirmation = () => {
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const { userToken } = useAuth();
     
-    // Read the passed data
     const { actionType, method, target, amount } = route.params;
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -37,10 +38,10 @@ const Confirmation = () => {
                 if (response.ok) {
                     navigation.navigate('PaymentStatus', { success: true, message: `Successfully added KES ${amount} to your wallet.` });
                 } else {
-                    navigation.navigate('PaymentStatus', { success: false, message: data.error || "Transaction failed." });
+                    // THE FIX: Parse the error before sending it to the status screen
+                    navigation.navigate('PaymentStatus', { success: false, message: parseApiError(data, "Transaction failed.") });
                 }
             } 
-            // ADD THIS NEW BLOCK FOR PAYMENTS
             else if (actionType === 'PAY') {
                 const response = await fetch(`${API_BASE_URL}/mobile/pay/`, {
                     method: 'POST',
@@ -51,14 +52,14 @@ const Confirmation = () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // route.params.targetName was passed from PayScreen so we can show who they paid!
                     navigation.navigate('PaymentStatus', { success: true, message: `Successfully paid KES ${amount} to ${route.params.targetName}.` });
                 } else {
-                    navigation.navigate('PaymentStatus', { success: false, message: data.error || "Transaction failed." });
+                    // THE FIX: Parse the error before sending it to the status screen
+                    navigation.navigate('PaymentStatus', { success: false, message: parseApiError(data, "Transaction failed.") });
                 }
             }
         } catch (error) {
-            navigation.navigate('PaymentStatus', { success: false, message: "Network Error" });
+            navigation.navigate('PaymentStatus', { success: false, message: "Network error. Could not connect to the server." });
         } finally {
             setIsProcessing(false);
         }
@@ -74,7 +75,7 @@ const Confirmation = () => {
             </View>
 
             <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
-                <Text className="text-center text-gray-500 mb-2">You are about to top up</Text>
+                <Text className="text-center text-gray-500 mb-2">You are about to {actionType === 'TOP_UP' ? 'top up' : 'pay'}</Text>
                 <Text className="text-center text-4xl font-extrabold text-dtb-navy mb-6">KES {amount}</Text>
 
                 <View className="border-t border-gray-100 py-4 flex-row justify-between">
@@ -82,25 +83,35 @@ const Confirmation = () => {
                     <Text className="text-dtb-navy font-bold">{method}</Text>
                 </View>
                 <View className="border-t border-gray-100 pt-4 flex-row justify-between">
-                    <Text className="text-gray-500 font-medium">Account / Number</Text>
-                    <Text className="text-dtb-navy font-bold">{target}</Text>
+                    <Text className="text-gray-500 font-medium">{actionType === 'TOP_UP' ? 'Account / Number' : 'Merchant'}</Text>
+                    <Text className="text-dtb-navy font-bold">{actionType === 'TOP_UP' ? target : route.params.targetName}</Text>
                 </View>
             </View>
 
-            <Pressable  
-                onPress={handleConfirm} 
-                disabled={isProcessing} 
-                className={`w-full py-5 rounded-xl items-center shadow-md mt-auto mb-8 ${isProcessing ? 'bg-dtb-red/70' : 'bg-dtb-red'}`} 
-            >
-                {isProcessing ? (
-                    <View className="flex-row items-center">
-                        <ActivityIndicator color="#ffffff" className="mr-3" />
-                        <Text className="text-white font-bold text-lg">{isWaitingForPin ? 'Check Phone for PIN...' : 'Processing...'}</Text>
-                    </View>
-                ) : (
-                    <Text className="text-white font-bold text-lg">Confirm & Pay</Text>
-                )}
-            </Pressable>
+            <View className="mt-auto mb-8">
+                <Pressable  
+                    onPress={handleConfirm} 
+                    disabled={isProcessing} 
+                    className={`w-full py-5 rounded-xl items-center shadow-md mb-4 ${isProcessing ? 'bg-dtb-red/70' : 'bg-dtb-red'}`} 
+                >
+                    {isProcessing ? (
+                        <View className="flex-row items-center">
+                            <ActivityIndicator color="#ffffff" className="mr-3" />
+                            <Text className="text-white font-bold text-lg">{isWaitingForPin ? 'Check Phone for PIN...' : 'Processing...'}</Text>
+                        </View>
+                    ) : (
+                        <Text className="text-white font-bold text-lg">Confirm & Pay</Text>
+                    )}
+                </Pressable>
+
+                <Pressable 
+                    onPress={() => navigation.goBack()}
+                    disabled={isProcessing}
+                    className="w-full py-5 rounded-xl items-center border border-gray-300 bg-white"
+                >
+                    <Text className="text-gray-600 font-bold text-lg">Cancel</Text>
+                </Pressable>
+            </View>
         </SafeAreaView>
     );
 };

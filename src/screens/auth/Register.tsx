@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { API_BASE_URL } from '../../config/api';
+import { parseApiError } from '../../utils/errorHandler';
+
 
 const Register = () => {
     const [name, setName] = useState('');
@@ -47,7 +49,6 @@ const Register = () => {
         
         setCreating(true);
         setError('');
-
         try {
             const response = await fetch(`${API_BASE_URL}/auth/register/`, {
                 method: 'POST',
@@ -56,7 +57,7 @@ const Register = () => {
                     'Accept': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: name, 
+                    username: name,
                     email: email,
                     password: password,
                     password_confirm: confirmPassword,
@@ -69,32 +70,19 @@ const Register = () => {
             if (response.ok) {
                 navigation.navigate('Login', { successMessage: 'Account created successfully! Please log in.' });
             } else {
-                let errorMessage = 'Failed to create account.';
-                if (data.message || data.detail) {
-                    errorMessage = data.message || data.detail;
-                } else if (data && typeof data === 'object') {
-                    const firstKey = Object.keys(data)[0]; 
-                    if (firstKey) {
-                        const errorContent = data[firstKey];
-                        if (Array.isArray(errorContent)) {
-                            errorMessage = `${firstKey}: ${errorContent[0]}`;
-                        } else if (typeof errorContent === 'string') {
-                            errorMessage = `${firstKey}: ${errorContent}`;
-                        }
-                    }
-                }
-                setError(errorMessage);
+                // THE REFACTOR: One single line replaces all that logic!
+                setError(parseApiError(data, 'Failed to create account.'));
             }
         } catch (err) {
             console.error("Network error:", err);
-            setError('Could not connect to the server.');
+            setError('Network error. Could not connect to the server.');
         } finally {
-            setCreating(false);
+            setCreating(false); // Make sure you turn off the loading spinner!
         }
     };
 
     return (
-        <SafeAreaView className='flex-1 bg-red-800 px-8'>
+        <SafeAreaView className='flex-1 bg-dtb-red px-8'>
             <KeyboardAvoidingView 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className='flex-1'
@@ -212,6 +200,12 @@ const Register = () => {
                                 {creating ? 'Creating...' : 'Create Account'}
                             </Text>
                         </Pressable>
+                        <View className='w-full flex-row items-center justify-center mt-2'>
+                            <Text className='text-sm text-red-100'>Already have an account? </Text>
+                            <Pressable onPress={() => navigation.navigate('Login')}>
+                                <Text className='text-sm font-bold text-white underline'>Log In</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

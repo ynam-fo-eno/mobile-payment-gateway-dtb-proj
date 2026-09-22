@@ -7,7 +7,8 @@ import { API_BASE_URL } from '../../config/api';
 
 const History = () => {
     const { userToken, role } = useAuth();
-    const [verifiedRole, setVerifiedRole] = useState(role ? role.toUpperCase() : 'CUSTOMER');
+    const verifiedRole = role ? role.toUpperCase() : 'CUSTOMER';
+    
     const [loading, setLoading] = useState(true);
     const [transactions, setTransactions] = useState<any[]>([]);
     
@@ -20,15 +21,6 @@ const History = () => {
         useCallback(() => {
             const fetchHistoryData = async () => {
                 try {
-                    const userResponse = await fetch(`${API_BASE_URL}/auth/me/`, {
-                        headers: { 'Authorization': `Bearer ${userToken}` }
-                    });
-                    
-                    if (userResponse.ok) {
-                        const userData = await userResponse.json();
-                        if (userData?.role) setVerifiedRole(userData.role.toUpperCase());
-                    }
-
                     const txResponse = await fetch(`${API_BASE_URL}/transactions/`, {
                         headers: { 'Authorization': `Bearer ${userToken}` }
                     });
@@ -49,9 +41,14 @@ const History = () => {
 
     const filteredTransactions = useMemo(() => {
         return transactions.filter(txn => {
-            const matchType = txType === 'ALL' || txn.transaction_type?.toUpperCase() === txType;
+            // Default to 'PAYMENT' if undefined, then check against the filter
+            const currentTxnType = txn.transaction_type ? txn.transaction_type.toUpperCase() : 'PAYMENT';
             
-            // Unify status logic for the filter exactly like the display
+            // THE FIX: If 'ALL' is selected, include everything EXCEPT settlements
+            const matchType = txType === 'ALL' 
+                ? currentTxnType !== 'SETTLEMENT' 
+                : currentTxnType === txType;
+            
             const rawStatus = txn.status ? txn.status.toUpperCase() : '';
             let mappedStatus = 'COMPLETED';
             if (rawStatus === '-' || rawStatus === 'FAILED' || rawStatus === 'REJECTED') {
@@ -123,7 +120,6 @@ const History = () => {
                      <ActivityIndicator size="large" color="#E32C22" className="mt-10" />
                 ) : paginatedTransactions.length > 0 ? (
                     paginatedTransactions.map((txn) => {
-                        // 1. Unified Counterpart extraction
                         let counterpart = 'Unknown Entity';
                         if (verifiedRole === 'CUSTOMER') {
                             counterpart = txn.merchant_name || txn.merchant_username || txn.merchant?.name || txn.merchant?.username || (typeof txn.merchant === 'string' ? txn.merchant : 'Unknown Merchant');
@@ -131,7 +127,6 @@ const History = () => {
                             counterpart = txn.customer_name || txn.customer_username || txn.customer?.name || txn.customer?.username || (typeof txn.customer === 'string' ? txn.customer : 'Unknown Customer');
                         }
                         
-                        // 2. Unified Status parsing
                         const rawStatus = txn.status ? txn.status.toUpperCase() : '';
                         let displayStatus = 'COMPLETED'; 
                         let statusColor = 'text-green-600';

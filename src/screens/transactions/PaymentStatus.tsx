@@ -12,8 +12,7 @@ const PaymentStatus = () => {
     const { success, message } = route.params;
 
     const handleDone = () => {
-        // Pop all the way back to the Dashboard tabs
-        navigation.navigate('MainTabs'); 
+        navigation.reset({index: 0,routes: [{ name: 'MainTabs' }],});
     };
 
     return (
@@ -22,7 +21,7 @@ const PaymentStatus = () => {
                 {success ? (
                     <CheckCircle color="#16a34a" size={100} strokeWidth={1.5} />
                 ) : (
-                    <XCircle color="#E32C22" size={100} strokeWidth={1.5} />
+                    <XCircle color="#962323" size={100} strokeWidth={1.5} />
                 )}
             </View>
 
@@ -38,7 +37,7 @@ const PaymentStatus = () => {
                 onPress={handleDone} 
                 className={`w-full py-5 rounded-xl items-center shadow-sm ${success ? 'bg-green-600' : 'bg-dtb-navy'}`}
             >
-                <Text className="text-white font-bold text-lg">Back to Dashboard</Text>
+                <Text className="text-white font-bold text-lg">Back</Text>
             </Pressable>
         </SafeAreaView>
     );
