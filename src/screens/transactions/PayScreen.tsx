@@ -16,7 +16,7 @@ const PayScreen = () => {
     const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
     const [amount, setAmount] = useState('');
     const [isLoadingMerchants, setIsLoadingMerchants] = useState(true);
-    const [fetchError, setFetchError] = useState(''); // Added to display errors if merchants fail to load
+    const [fetchError, setFetchError] = useState('');
 
     useEffect(() => {
         const fetchMerchants = async () => {
