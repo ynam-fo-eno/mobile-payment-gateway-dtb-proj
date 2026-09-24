@@ -6,11 +6,12 @@ module.exports = {
     extend: {
       colors:{
           dtb: {
-          red: '#d2232a',
+          red: '#991b1b',
           orange: '#f05d22',
           yellow: '#f1b719',
-          navy: '#1d252d',
-          white: '#f8f9fa'
+          navy: '#000052',
+          white: '#f8f9fa',
+          green: "#90EE90",
         },
       },
     },
